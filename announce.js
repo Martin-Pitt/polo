@@ -9,11 +9,11 @@ module.exports = function(me, options, callback) {
 	var hosts = {};
 	var found = 0;
 	var loopTimer;
-
+	
 	var port = options.port || MULTICAST_PORT;
 	var host = options.host || MULTICAST_ADDRESS;
-	var multicast = !(options.multicast === false || (options.multicast === undefined && process.env.NODE_ENV === 'development'));
-
+	var multicast = options.multicast || host;
+	
 	var clear = function() {
 		hosts = {};
 	};
@@ -22,7 +22,7 @@ module.exports = function(me, options, callback) {
 	};
 	var send = function(msg) {
 		msg = new Buffer(msg);
-		server.send(msg, 0, msg.length, port, host);
+		server.send(msg, 0, msg.length, port, multicast); // host);
 	};
 	var find = function() {
 		var then = found;
@@ -37,7 +37,7 @@ module.exports = function(me, options, callback) {
 
 		loop();
 	};
-
+	
 	me = Math.random().toString(16).substr(2) + '@' + me;
 
 	process.env = {};
@@ -45,7 +45,9 @@ module.exports = function(me, options, callback) {
 	process.env = env;
 
 	server.on('listening', function() {
-		if (!multicast) server.setMulticastTTL(0);
+		server.setBroadcast(true);
+		server.setMulticastTTL(128); 
+		if (!options.multicast) server.setMulticastTTL(0);
 		try {
 			server.addMembership(host);
 		} catch (e) {
